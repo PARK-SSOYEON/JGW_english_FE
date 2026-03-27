@@ -11,6 +11,8 @@ import WarnedPage from './pages/WarnedPage'
 import ManagePage from './pages/ManagePage'
 import AttendancePage from './pages/Attendancepage.tsx'
 import AdminPage from './pages/AdminPage.tsx'
+import NotificationPage from './pages/NotificationPage'
+
 
 function ProtectedRoutes() {
   const { auth } = useAuth()
@@ -25,7 +27,9 @@ function ProtectedRoutes() {
           <Route path="/classes"    element={<ClassesPage />} />
           <Route path="/warned"     element={<WarnedPage />} />
           <Route path="/manage"     element={<ManagePage />} />
-          {/* 슈퍼 관리자 전용 */}
+          <Route path="/notifications" element={<NotificationPage />} />
+
+            {/* 슈퍼 관리자 전용 */}
           <Route path="/attendance"  element={<AttendancePage />} />
           <Route path="/admin"       element={<AdminPage />} />
           <Route path="*"           element={<Navigate to="/" replace />} />
