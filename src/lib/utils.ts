@@ -3,20 +3,23 @@ import { ko } from 'date-fns/locale'
 
 export const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
+function parseDB(dtStr: string): Date {
+  // 공백 → T 로 바꾸면 브라우저가 로컬 시간으로 파싱 (Z 없으므로 +9 안 됨)
+  return new Date(dtStr.replace(' ', 'T'))
+}
+
 export function formatDate(dateStr: string) {
-  try { return format(parseISO(dateStr), 'yyyy.MM.dd (eee)', { locale: ko }) }
+  try { return format(parseDB(dateStr), 'yyyy.MM.dd (eee)', { locale: ko }) }
   catch { return dateStr }
 }
 
 export function formatTime(dtStr: string) {
-  try {
-    const date = new Date(dtStr)
-    return format(date, 'HH:mm')
-  } catch { return dtStr }
+  try { return format(parseDB(dtStr), 'HH:mm') }
+  catch { return dtStr }
 }
 
 export function formatDateTime(dtStr: string) {
-  try { return format(parseISO(dtStr), 'MM.dd HH:mm', { locale: ko }) }
+  try { return format(parseDB(dtStr), 'MM.dd HH:mm', { locale: ko }) }
   catch { return dtStr }
 }
 
@@ -29,7 +32,8 @@ export function minutesToHM(min: number) {
 }
 
 export function todayStr() {
-  return format(new Date(), 'yyyy-MM-dd')
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  return now.toISOString().slice(0, 10)
 }
 
 export function getWeekDates(start: string): string[] {
