@@ -38,21 +38,21 @@ export default function NotificationPage() {
 
     const deleteOne = async (id: number) => {
         try {
-            await api.delete(`/notifications/${id}`)
+            await api.patch(`/notifications/${id}/read`)
             setNotifications(prev => prev.filter(n => n.id !== id))
         } catch {
-            toast('삭제 실패', 'error')
+            toast('처리 실패', 'error')
         }
     }
 
     const deleteAll = async () => {
-        if (!confirm('모든 알림을 삭제하시겠습니까?')) return
+        if (!confirm('모든 알림을 지우시겠습니까?')) return
         try {
-            await api.delete('/notifications')
+            await api.patch('/notifications/read-all')
             setNotifications([])
-            toast('전체 삭제 완료', 'success')
+            toast('완료', 'success')
         } catch {
-            toast('삭제 실패', 'error')
+            toast('처리 실패', 'error')
         }
     }
 
