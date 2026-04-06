@@ -27,7 +27,7 @@ export default function WarnedPage() {
   const resolveWarning = async (student: Student) => {
     if (!confirm(`${student.name} 학생의 경고를 해제하시겠습니까?`)) return
     try {
-      await api.patch(`/students/${student.id}`, { is_warned: false })
+      await api.patch(`/students/${student.id}`, { warn_count: 0 })
       toast('경고 해제 완료', 'success')
       fetch()
     } catch {
@@ -36,7 +36,7 @@ export default function WarnedPage() {
   }
 
   const expel = async (student: Student) => {
-    if (!confirm(`${student.name} 학생을 퇴원 처리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return
+    if (!confirm(`${student.name} 학생을 퇴원 처리하시겠습니까?`)) return
     try {
       await api.delete(`/students/${student.id}`)
       toast(`${student.name} 퇴원 처리 완료`, 'success')
@@ -46,63 +46,83 @@ export default function WarnedPage() {
     }
   }
 
-  return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+  // 경고 횟수별 분류
+  const warned1 = students.filter(s => s.warn_count === 1)
+  const warned2 = students.filter(s => s.warn_count >= 2)
+
+  const StudentRow = ({ s }: { s: Student }) => (
+      <div className="card p-4 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">경고 대상자</h2>
-          <p className="text-sm text-gray-500 mt-0.5">자습 미이행으로 경고를 받은 학생 목록</p>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-900">{s.name}</span>
+            {s.warn_count >= 2
+                ? <span className="badge-red">⚠️ 경고 {s.warn_count}회 (퇴원 대상)</span>
+                : <span className="badge-amber">⚠️ 경고 {s.warn_count}회</span>
+            }
+          </div>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {s.school} · {s.grade}학년 · {s.class_names || '반 미배정'}
+          </p>
         </div>
-        <button className="btn-secondary btn-sm" onClick={fetch}>새로고침</button>
+        <div className="flex gap-2">
+          <button className="btn-secondary btn-sm" onClick={() => resolveWarning(s)}>
+            경고 해제
+          </button>
+          {isSuper && (
+              <button className="btn-danger btn-sm" onClick={() => expel(s)}>
+                퇴원 처리
+              </button>
+          )}
+        </div>
       </div>
+  )
 
-      {loading ? (
-        <div className="card p-8 text-center text-gray-400 text-sm">불러오는 중...</div>
-      ) : students.length === 0 ? (
-        <div className="card p-12 text-center">
-          <p className="text-4xl mb-3">✅</p>
-          <p className="text-sm text-gray-500">경고 대상자가 없습니다.</p>
+  return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">경고 대상자</h2>
+            <p className="text-sm text-gray-500 mt-0.5">총 {students.length}명</p>
+          </div>
+          <button className="btn-secondary btn-sm" onClick={fetch}>새로고침</button>
         </div>
-      ) : (
-        <>
-          <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-4">
-            <p className="text-sm text-red-700 font-medium">⚠️ 경고 대상자 {students.length}명</p>
-            <p className="text-xs text-red-500 mt-0.5">
-              경고 상태에서 자습을 또 이행하지 않을 경우 퇴원 조치됩니다.
-            </p>
-          </div>
 
-          <div className="space-y-3">
-            {students.map((s) => (
-              <div key={s.id} className="card p-4 border-red-200">
-                <div className="flex items-center justify-between">
+        {loading ? (
+            <div className="card p-8 text-center text-gray-400">불러오는 중...</div>
+        ) : students.length === 0 ? (
+            <div className="card p-12 text-center">
+              <p className="text-4xl mb-3">✅</p>
+              <p className="text-sm text-gray-500">경고 대상자가 없습니다.</p>
+            </div>
+        ) : (
+            <div className="space-y-6">
+              {/* 퇴원 대상 (2회 이상) */}
+              {warned2.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">{s.name}</span>
-                      <span className="badge-red">⚠️ 경고</span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="text-sm font-semibold text-red-600">퇴원 조치 대상</h3>
+                      <span className="badge-red">{warned2.length}명</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {s.school} · {s.grade}학년 · {s.class_names || '반 미배정'}
-                    </p>
+                    <div className="space-y-2">
+                      {warned2.map(s => <StudentRow key={s.id} s={s} />)}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button className="btn-secondary btn-sm"
-                      onClick={() => resolveWarning(s)}>
-                      경고 해제
-                    </button>
-                    {isSuper && (
-                      <button className="btn-danger btn-sm"
-                        onClick={() => expel(s)}>
-                        퇴원 처리
-                      </button>
-                    )}
+              )}
+
+              {/* 경고 1회 */}
+              {warned1.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="text-sm font-semibold text-amber-600">경고 1회</h3>
+                      <span className="badge-amber">{warned1.length}명</span>
+                    </div>
+                    <div className="space-y-2">
+                      {warned1.map(s => <StudentRow key={s.id} s={s} />)}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+              )}
+            </div>
+        )}
+      </div>
   )
 }

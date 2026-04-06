@@ -178,7 +178,11 @@ function StudentCard({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-gray-900 text-lg">{student.name}</span>
-              {!!student.is_warned && <span className="badge-red">⚠️ 경고</span>}
+              {(student.warn_count ?? 0) > 0 && (
+                  <span className={student.warn_count >= 2 ? 'badge-red' : 'badge-amber'}>
+                    ⚠️ 경고 {student.warn_count}회
+                  </span>
+              )}
               {hasClassToday && <span className="badge-blue">📚 오늘 수업</span>}
             </div>
             <p className="text-xs text-gray-500 mt-0.5">

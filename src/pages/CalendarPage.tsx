@@ -194,9 +194,37 @@ export default function CalendarPage() {
                   schedule={editSchedule}
                   onSuccess={() => { setEditSchedule(null); fetchSchedules() }}
               />
+
+              {/* 상태 변경 */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <label className="label">상태 변경</label>
+                <div className="flex gap-2">
+                  {(['pending', 'in_progress', 'completed', 'expired'] as const).map((s) => (
+                      <button key={s} type="button"
+                              onClick={async () => {
+                                try {
+                                  await api.patch(`/schedules/${editSchedule.id}`, { status: s })
+                                  toast('상태 변경 완료', 'success')
+                                  setEditSchedule(null)
+                                  fetchSchedules()
+                                } catch {
+                                  toast('오류 발생', 'error')
+                                }
+                              }}
+                              className={`flex-1 py-1.5 rounded-lg text-xs border transition-colors ${
+                                  editSchedule.status === s
+                                      ? 'bg-primary-light border-primary text-primary font-medium'
+                                      : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                              }`}>
+                        {{ pending: '미시작', in_progress: '진행중', completed: '완료', expired: '만료' }[s]}
+                      </button>
+                  ))}
+                </div>
+              </div>
+
               {isSuper && (
                   <div className="mt-3 pt-3 border-t border-gray-100">
-                    <button className="btn-danger w-full btn-sm"
+                    <button className="btn-danger w-full "
                             onClick={() => deleteSchedule(editSchedule.id)}>
                       일정 삭제
                     </button>

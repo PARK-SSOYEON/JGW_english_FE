@@ -13,6 +13,7 @@ interface ClassStudent {
   school: string
   grade: number
   is_warned: boolean
+  warn_count: number
   class_names: string
   pending_study_count: number
   pending_retest_count: number
@@ -125,7 +126,11 @@ export default function ClassesPage() {
                                     onClick={() => setSchedModal(s)}
                                     className="flex items-center gap-2 text-left hover:text-primary transition-colors">
                                   <span className="font-medium text-gray-900 text-sm">{s.name}</span>
-                                  {!!s.is_warned && <span className="badge-red">경고</span>}
+                                  {(s.warn_count ?? 0) > 0 && (
+                                      <span className={s.warn_count >= 2 ? 'badge-red' : 'badge-amber'}>
+                                        경고 {s.warn_count}회
+                                      </span>
+                                  )}
                                   <span className="text-xs text-gray-300">+ 일정</span>
                                 </button>
 

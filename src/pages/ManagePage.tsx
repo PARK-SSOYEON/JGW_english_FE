@@ -35,8 +35,12 @@ export default function ManagePage() {
               <div key={s.id} className="card px-4 py-3 flex items-center justify-between">
                 <div>
                   <span className="font-medium text-gray-900">{s.name}</span>
-                  {!!s.is_warned && <span className="badge-red ml-2">경고</span>}
-                  <p className="text-xs text-gray-400 mt-0.5">
+                    {(s.warn_count ?? 0) > 0 && (
+                        <span className={`ml-2 ${s.warn_count >= 2 ? 'badge-red' : 'badge-amber'}`}>
+                            경고 {s.warn_count}회
+                          </span>
+                    )}
+                    <p className="text-xs text-gray-400 mt-0.5">
                     {s.school} · {s.grade}학년 · {s.class_names || '반 미배정'}
                   </p>
                 </div>
