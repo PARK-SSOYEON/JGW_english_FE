@@ -51,8 +51,8 @@ export interface StudentDetail extends Student {
 export interface Class {
   id: number
   name: string
-  school: '유신고' | '창현고'
-  grade: 1 | 2
+  school: '유신고' | '창현고' | '연무중' | '다산중'
+  grade: 1 | 2 |3
   day_of_week: number
   created_at: string
 }

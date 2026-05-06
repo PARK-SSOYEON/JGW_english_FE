@@ -47,7 +47,7 @@ export default function ClassesPage() {
     }
   }
 
-  const schools = ['유신고', '창현고'] as const
+  const schools = ['유신고', '창현고', '연무중', '다산중'] as const
 
   return (
       <div className="p-6">
@@ -61,7 +61,7 @@ export default function ClassesPage() {
                 {schools.map((school) => (
                     <div key={school}>
                       <p className="text-xs font-semibold text-gray-400 uppercase mb-1.5">{school}</p>
-                      {([1, 2] as const).map((grade) => {
+                      {([1, 2, 3] as const).map((grade) => {
                         const gradeClasses = classes.filter((c) => c.school === school && c.grade === grade)
                         if (!gradeClasses.length) return null
                         return (
