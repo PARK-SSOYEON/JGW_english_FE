@@ -67,7 +67,7 @@ export default function SearchPage() {
 
   const completeRetest = async (student: StudentDetail, schedId: number) => {
     try {
-      await api.patch(`/schedules/${schedId}`, { is_completed: true })
+      await api.patch(`/schedules/${schedId}`, { status: 'completed' })
       toast(`${student.name} 재시험 완료 처리!`, 'success')
       search()
     } catch {
