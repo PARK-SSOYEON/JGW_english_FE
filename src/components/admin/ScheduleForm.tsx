@@ -5,6 +5,7 @@ import api from '../../lib/api'
 import { Schedule, Student, Class } from '../../types'
 import { minutesToHM, DOW_LABELS } from '../../lib/utils'
 import { useToast } from '../common/Toast'
+import { useAuth } from '../../hooks/useAuth'
 
 interface Props {
   studentId?: number
@@ -74,8 +75,13 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
   const [autoDeadline, setAutoDeadline] = useState<string>(
       schedule?.deadline_date?.slice(0, 10) || calcDefaultDeadline()
   )
+  const [status, setStatus] = useState<
+      'pending' | 'in_progress' | 'completed' | 'expired'
+  >(schedule?.status || 'pending')
   const [studentClassDow, setStudentClassDow] = useState<number | undefined>(undefined)
   const toast = useToast()
+  const { isSuper } = useAuth()
+
 
   const fCount = (fHomework ? 1 : 0) + (fRetest ? 1 : 0)
   const requiredMinutes = type === 'study'
@@ -144,6 +150,7 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
         f_retest:   fRetest,
         deadline_date: autoDeadline,
         note: note || null,
+        status,
       }
       if (schedule) {
         await api.patch(`/schedules/${schedule.id}`, payload)
@@ -301,6 +308,37 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
                  placeholder="예: 3단원 시험"
                  onChange={(e) => setNote(e.target.value)} />
         </div>
+
+        {schedule &&
+            (
+                schedule.type === 'retest' ||
+                (schedule.type === 'study' && isSuper)
+            ) && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <label className="label">상태 변경</label>
+              <div className="flex gap-2">
+                {(['pending', 'in_progress', 'completed', 'expired'] as const).map((s) => (
+                    <button
+                        key={s}
+                        type="button"
+                        onClick={() => setStatus(s)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs border transition-colors ${
+                            status === s
+                                ? 'bg-primary-light border-primary text-primary font-medium'
+                                : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                        }`}
+                    >
+                      {{
+                        pending: '미시작',
+                        in_progress: '진행중',
+                        completed: '완료',
+                        expired: '만료',
+                      }[s]}
+                    </button>
+                ))}
+              </div>
+            </div>
+        )}
 
         <button className="btn-primary w-full" onClick={submit} disabled={loading}>
           {loading ? '처리 중...' : schedule ? '수정' : '등록'}

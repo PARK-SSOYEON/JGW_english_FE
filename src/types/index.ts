@@ -35,7 +35,6 @@ export interface Schedule {
   done_minutes?: number
   deadline_date: string | null
   status: 'pending' | 'in_progress' | 'completed' | 'expired'
-  // is_completed 제거
   completed_at: string | null
   note: string | null
   created_at: string
