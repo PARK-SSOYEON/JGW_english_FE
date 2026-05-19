@@ -68,7 +68,7 @@ export default function CalendarPage() {
 
   const schoolLabel = (school?: string, grade?: number) => {
     if (!school || !grade) return ''
-    const s = school === '유신고' ? '유신' : '창현'
+    const s = school.slice(0, 2)
     return `${s}${grade}`
   }
 
