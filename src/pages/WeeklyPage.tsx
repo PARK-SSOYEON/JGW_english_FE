@@ -96,7 +96,7 @@ export default function WeeklyPage() {
         pending: items.filter(s => s.status === 'pending' || s.status === 'in_progress').length,
     })
 
-    const schools = ['유신고', '창현고'] as const
+    const schools = ['유신고', '창현고', '연무중', '다산중'] as const
 
     return (
         <div className="p-4 md:p-6 max-w-4xl mx-auto">
