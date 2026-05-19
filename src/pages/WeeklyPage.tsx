@@ -314,17 +314,21 @@ export default function WeeklyPage() {
                                   완료
                               </button>
                           )}
-                                                    {s.status === 'completed' && (
-                                                        <button className="btn-secondary btn-sm"
-                                                                onClick={() => changeStatus(s.id, 'in_progress')}>
-                                                            취소
-                                                        </button>
-                                                    )}
                                                     {isSuper && (
-                                                        <button className="btn-danger btn-sm"
-                                                                onClick={() => deleteSchedule(s.id)}>
-                                                            삭제
-                                                        </button>
+                                                        <>
+                                                            {s.status === 'completed' && (
+                                                                <button className="btn-secondary btn-sm"
+                                                                        onClick={() => changeStatus(s.id, 'in_progress')}>
+                                                                    취소
+                                                                </button>
+                                                            )}
+                                                            {isSuper && (
+                                                                <button className="btn-danger btn-sm"
+                                                                        onClick={() => deleteSchedule(s.id)}>
+                                                                    삭제
+                                                                </button>
+                                                            )}
+                                                        </>
                                                     )}
                         </span>
                                             </div>
