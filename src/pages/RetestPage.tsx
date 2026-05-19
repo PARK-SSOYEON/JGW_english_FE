@@ -22,7 +22,7 @@ export default function RetestPage() {
     const [loading,   setLoading]   = useState(false)
     const [statusFilter,  setStatusFilter]  = useState<StatusFilter>('all')
     const [filterClassId, setFilterClassId] = useState<number | 'all'>('all')
-    const [hideExpired,   setHideExpired]   = useState(false)
+    const [showExpired, setShowExpired] = useState(false)
     const toast = useToast()
     const { isSuper } = useAuth()
 
@@ -82,12 +82,19 @@ export default function RetestPage() {
 
     // 필터 적용
     const filtered = schedules.filter(s => {
-        if (hideExpired && s.status === 'expired') return false
+        const isExpiredByDate =
+            s.deadline_date &&
+            s.deadline_date.slice(0, 10) < todayStr_
+
+        if (!showExpired && isExpiredByDate) return false
+
         if (statusFilter !== 'all' && s.status !== statusFilter) return false
+
         if (filterClassId !== 'all') {
             const cls = classes.find(c => c.id === filterClassId)
             if (cls && !s.class_names?.includes(cls.name)) return false
         }
+
         return true
     })
 
@@ -168,8 +175,9 @@ export default function RetestPage() {
                 </select>
 
                 <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer select-none">
-                    <input type="checkbox" checked={hideExpired}
-                           onChange={e => setHideExpired(e.target.checked)}
+                    <input type="checkbox"
+                           checked={showExpired}
+                           onChange={e => setShowExpired(e.target.checked)}
                            className="rounded" />
                     지난 내역 보기
                 </label>
