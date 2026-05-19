@@ -237,7 +237,7 @@ export default function RetestPage() {
                             <span className={meta.badge}>{meta.label}</span>
                           </span>
                                                     <span className="col-span-2 flex gap-1 justify-end">
-                            {s.status !== 'completed' && (
+                            {s.status !== 'completed' &&  s.status !== 'expired' && (
                                 <button className="btn-primary btn-sm"
                                         onClick={() => completeRetest(s.id)}>
                                     완료
