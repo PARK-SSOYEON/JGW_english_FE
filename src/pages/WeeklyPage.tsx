@@ -218,25 +218,28 @@ export default function WeeklyPage() {
                           <span className={meta.badge}>{meta.label}</span>
                         </span>
                                                 <span className="col-span-2 flex gap-1 justify-end">
-                          {s.status !== 'completed' && (
-                              <button className="btn-primary btn-sm"
-                                      onClick={() => completeSchedule(s.id)}>
-                                  완료
-                              </button>
-                          )}
-                                                    {s.status === 'completed' && (
-                                                        <button className="btn-secondary btn-sm"
-                                                                onClick={() => changeStatus(s.id, 'pending')}>
-                                                            취소
-                                                        </button>
-                                                    )}
-                                                    {isSuper && (
-                                                        <button className="btn-danger btn-sm"
-                                                                onClick={() => deleteSchedule(s.id)}>
-                                                            삭제
-                                                        </button>
-                                                    )}
-                        </span>
+
+                        {isSuper && (
+                            <>
+                                {s.status !== 'completed' && (
+                                    <button className="btn-primary btn-sm"
+                                            onClick={() => completeSchedule(s.id)}>
+                                        완료
+                                    </button>
+                                )}
+                                {s.status === 'completed' && (
+                                    <button className="btn-secondary btn-sm"
+                                            onClick={() => changeStatus(s.id, 'pending')}>
+                                        취소
+                                    </button>
+                                )}
+                                <button className="btn-danger btn-sm"
+                                        onClick={() => deleteSchedule(s.id)}>
+                                    삭제
+                                </button>
+                            </>
+                        )}
+                            </span>
                                             </div>
                                         )
                                     })}
