@@ -133,7 +133,17 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
     resolve()
   }, [selStudentId, classes, students]) // ← useEffect 하나로 통합
 
-  const selectableDates = getSelectableDates(studentClassDow)
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+  const shouldLockDate =
+      schedule &&
+      ['completed', 'expired'].includes(status) &&
+      autoDeadline < todayStr
+
+  const selectableDates = shouldLockDate
+      ? []
+      : getSelectableDates(studentClassDow)
 
   const submit = async () => {
     if (!selStudentId) return toast('학생을 선택해주세요.', 'error')
@@ -236,12 +246,16 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
 
         <div>
           <label className="label">방문 예정 날짜</label>
-          {schedule && !selectableDates.some(d => d.date === date) && date && (
+          {(shouldLockDate || (schedule && !selectableDates.some(d => d.date === date))) && date && (
               <div className="mb-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500">
                 현재: {format(new Date(date + 'T00:00:00'), 'yyyy년 M월 d일 (eee)', { locale: ko })}
               </div>
           )}
-          {selectableDates.length === 0 ? (
+          {shouldLockDate ? (
+              <div className="text-xs text-gray-400 py-2">
+                완료/만료된 일정은 날짜를 변경할 수 없습니다.
+              </div>
+          ) : selectableDates.length === 0 ? (
               <div className="text-xs text-gray-400 py-2">날짜를 계산 중...</div>
           ) : (
               <div className="flex gap-1.5 flex-wrap">
