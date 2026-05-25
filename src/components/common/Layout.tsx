@@ -77,7 +77,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       `}>
                 {/* 헤더 */}
                 <div className="px-5 py-4 border-b border-gray-100">
-                    <h1 className="font-bold text-gray-900 text-base leading-tight">학원 관리</h1>
+                    <h1 className="font-bold text-gray-900 text-base leading-tight">정기원영어학원</h1>
                     <p className="text-xs text-gray-400 mt-0.5">
                         {auth.name} · {auth.role === 'super' ? '슈퍼' : '일반'} 관리자
                     </p>
