@@ -60,12 +60,16 @@ export interface StudyLog {
   id: number
   student_id: number
   student_name?: string
+  student_school?: string
+  student_grade?: number
   schedule_id: number | null
   log_date: string
   start_time: string
   end_time: string | null
   actual_minutes: number | null
   required_minutes?: number | null
+  done_minutes?: number | null
+  remain_minutes?: number| null
   created_at: string
 }
 

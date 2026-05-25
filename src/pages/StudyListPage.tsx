@@ -39,6 +39,7 @@ export default function StudyListPage() {
   const [filterClassId, setFilterClassId] = useState<number | 'all'>('all')
   const [hideExpired, setHideExpired] = useState(true)
 
+
   const fetchLogs = async () => {
     setLogsLoading(true)
     try {
@@ -413,12 +414,20 @@ function LogRow({ log, onDelete, onEnd, showDate }: {
   showDate?: boolean
 }) {
   const isActive = !log.end_time
+  const schoolLabel = (school?: string, grade?: number) => {
+    if (!school || !grade) return ''
+    const s = school.slice(0, 2)
+    return `${s}${grade}`
+  }
+
   return (
       <div className={`card px-4 py-3 flex items-center justify-between ${isActive ? 'border-green-200' : ''}`}>
         <div className="flex items-center gap-3">
           {isActive && <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
           <div>
             <span className="font-medium text-gray-900">{log.student_name}</span>
+            <span className="font-light text-xs ml-1">
+              {schoolLabel(log.student_school, log.student_grade)}</span>
             <span className="text-xs text-gray-400 ml-2">
             {showDate && (
                 <span className="mr-1">{log.start_time.slice(0, 10)}</span>
@@ -431,8 +440,12 @@ function LogRow({ log, onDelete, onEnd, showDate }: {
           {log.actual_minutes != null && (
               <span className="badge-green">{minutesToHM(log.actual_minutes)}</span>
           )}
-          {log.required_minutes != null && (
-              <span className="badge-gray">목표 {minutesToHM(log.required_minutes)}</span>
+          {log.remain_minutes != null && (
+              <span className="badge-gray">Left {minutesToHM(log.remain_minutes)}</span>
+          )}
+          {log.remain_minutes == null && (
+              (log.required_minutes !=null && log.done_minutes!= null) &&
+              <span className="badge-gray">Left {minutesToHM(log.required_minutes-log.done_minutes)}</span>
           )}
           {/* 진행 중일 때 종료 버튼 */}
           {isActive && onEnd && (

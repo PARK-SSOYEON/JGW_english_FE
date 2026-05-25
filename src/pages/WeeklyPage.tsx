@@ -328,7 +328,7 @@ export default function WeeklyPage() {
                                                                     onClick={() => deleteSchedule(s.id)}>
                                                                 삭제
                                                             </button>
-                                                            
+
                                                         </>
                                                     )}
                         </span>
