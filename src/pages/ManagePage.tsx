@@ -3,12 +3,13 @@ import api from '../lib/api'
 import { Student } from '../types'
 import { useToast } from '../components/common/Toast'
 import { useAuth } from '../hooks/useAuth'
+import { useSeason } from '../hooks/useSeason'
 import Modal from '../components/common/Modal'
 import StudentForm from '../components/admin/StudentForm'
 
 const schoolType = (school?: string) => {
-    if (school?.includes('중')) return '중학교'
-    if (school?.includes('고')) return '고등학교'
+    if (school === 'middle') return '중학교'
+    if (school === 'high')   return '고등학교'
     return '기타'
 }
 
@@ -16,22 +17,25 @@ export default function ManagePage() {
     const [students, setStudents] = useState<Student[]>([])
     const toast = useToast()
     const { isSuper } = useAuth()
+    const { season } = useSeason()
     const [studentModal, setStudentModal] = useState<Student | 'new' | null>(null)
 
     const fetchStudents = async () => {
         try {
-            const { data } = await api.get('/students')
+            const { data } = await api.get('/students', {
+                params: { season_id: season?.id }  // ✅ 시즌 필터
+            })
             setStudents(data)
         } catch {
             toast('불러오기 실패', 'error')
         }
     }
 
-    useEffect(() => { fetchStudents() }, [])
+    useEffect(() => { fetchStudents() }, [season])
 
     // 학교급 + 학년으로 그룹핑
     const groupedByGrade = students.reduce<Record<string, Student[]>>((acc, s) => {
-        const key = `${schoolType(s.school)}-${s.grade ?? 0}`
+        const key = `${schoolType(s.school_type)}-${s.grade ?? 0}`
         if (!acc[key]) acc[key] = []
         acc[key].push(s)
         return acc
@@ -60,13 +64,11 @@ export default function ManagePage() {
                     const [type, grade] = key.split('-')
                     return (
                         <div key={key}>
-                            {/* 학년 헤더 */}
                             <div className="flex items-center gap-2 mb-2 px-1">
                                 <h3 className="text-sm font-semibold text-gray-700">{type} {grade}학년</h3>
                                 <span className="badge-gray">{groupedByGrade[key].length}명</span>
                             </div>
 
-                            {/* 학생 목록 */}
                             <div className="space-y-2">
                                 {groupedByGrade[key].map((s) => (
                                     <div key={s.id} className="card px-4 py-3 flex items-center justify-between">
@@ -78,7 +80,7 @@ export default function ManagePage() {
                         </span>
                                             )}
                                             <p className="text-xs text-gray-400 mt-0.5">
-                                                {s.school} · {s.class_names || '반 미배정'}
+                                                {s.school} · {s.class_names || '미배정'}
                                             </p>
                                         </div>
                                         <div className="flex gap-2">

@@ -9,14 +9,11 @@ interface Props {
   onSuccess: () => void
 }
 
-const schoolTypeOf = (school?: string) => {
-  if (school === 'middle') return 'middle'
-  return 'high'
-}
-
 export default function StudentForm({ student, onSuccess }: Props) {
   const [name,       setName]       = useState(student?.name || '')
-  const [schoolType, setSchoolType] = useState<'middle' | 'high'>(schoolTypeOf(student?.school))
+  const [schoolType, setSchoolType] = useState<'middle' | 'high'>(
+      student?.school_type ?? 'high'
+  )
   const [schoolName, setSchoolName] = useState(student?.school || '')
   const [grade,      setGrade]      = useState<1 | 2 | 3>(student?.grade || 1)
   const [classIds,   setClassIds]   = useState<number[]>([])

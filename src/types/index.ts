@@ -11,6 +11,7 @@ export interface Student {
   id: number
   name: string
   school: '유신고' | '창현고'
+  school_type: 'high' | 'middle'
   grade: 1 | 2
   warn_count: number        // is_warned 제거
   is_active: boolean
