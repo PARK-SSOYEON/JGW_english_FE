@@ -49,7 +49,8 @@ export default function StudentForm({ student, onSuccess }: Props) {
     try {
       const payload = {
         name,
-        school: schoolName,   // 실제 학교명 저장
+        school: schoolName,
+        school_type: schoolType,  
         grade,
         class_ids: classIds,
         season_id: season?.id
