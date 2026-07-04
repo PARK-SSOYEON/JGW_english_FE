@@ -27,14 +27,16 @@ export default function AdminPage() {
 
   const [classModal,  setClassModal]  = useState(false)
   const [className,   setClassName]   = useState('')
-  const [classSchool, setClassSchool] = useState<'유신고' | '창현고'>('유신고')
-  const [classGrade,  setClassGrade]  = useState<1 | 2>(1)
+  const [classGrade,  setClassGrade]  = useState<1 | 2 | 3>(1)
   const [classDow,    setClassDow]    = useState(2)
 
   const [seasonModal,     setSeasonModal]     = useState(false)
   const [seasonName,      setSeasonName]      = useState('')
   const [seasonStartDate, setSeasonStartDate] = useState('')
   const [seasonEndDate,   setSeasonEndDate]   = useState('')
+
+  const [classSchoolType, setClassSchoolType] = useState<'middle' | 'high'>('high')
+
 
   const fetchAdmins  = async () => { try { const { data } = await api.get('/admins');  setAdmins(data)  } catch { toast('불러오기 실패', 'error') } }
   const fetchClasses = async () => { try { const { data } = await api.get('/classes', { params: { season_id: activeSeason?.id } }); setClasses(data) } catch { toast('불러오기 실패', 'error') } }
@@ -77,9 +79,10 @@ export default function AdminPage() {
   const saveClass = async () => {
     if (!className.trim()) return toast('반 이름을 입력해주세요.', 'error')
     try {
+      // saveClass에서 school 파라미터로 전달
       await api.post('/classes', {
         name: className,
-        school: classSchool,
+        school: classSchoolType,
         grade: classGrade,
         day_of_week: classDow,
         season_id: activeSeason?.id
@@ -321,16 +324,16 @@ export default function AdminPage() {
                          onChange={(e) => setClassName(e.target.value)} placeholder="예: 고2 화요반" />
                 </div>
                 <div>
-                  <label className="label">학교</label>
+                  <label className="label">학교급</label>
                   <div className="flex gap-2">
-                    {SCHOOL_OPTIONS.map((s) => (
-                        <button key={s} type="button" onClick={() => setClassSchool(s)}
+                    {(['high', 'middle'] as const).map((s) => (
+                        <button key={s} type="button" onClick={() => setClassSchoolType(s)}
                                 className={`flex-1 py-2 rounded-lg text-sm border transition-colors ${
-                                    classSchool === s
+                                    classSchoolType === s
                                         ? 'bg-primary-light border-primary text-primary font-medium'
                                         : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                                 }`}>
-                          {s}
+                          {s === 'high' ? '고등학교' : '중학교'}
                         </button>
                     ))}
                   </div>
@@ -338,7 +341,7 @@ export default function AdminPage() {
                 <div>
                   <label className="label">학년</label>
                   <div className="flex gap-2">
-                    {([1, 2] as const).map((g) => (
+                    {([1, 2, 3] as const).map((g) => (
                         <button key={g} type="button" onClick={() => setClassGrade(g)}
                                 className={`flex-1 py-2 rounded-lg text-sm border transition-colors ${
                                     classGrade === g

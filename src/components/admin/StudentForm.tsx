@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import api from '../../lib/api'
 import { Student, Class } from '../../types'
 import { useToast } from '../common/Toast'
-import { SCHOOL_OPTIONS, GRADE_OPTIONS } from '../../lib/utils'
 import { useSeason } from '../../hooks/useSeason'
 
 interface Props {
@@ -10,18 +9,23 @@ interface Props {
   onSuccess: () => void
 }
 
+const schoolTypeOf = (school?: string) => {
+  if (school === 'middle') return 'middle'
+  return 'high'
+}
+
 export default function StudentForm({ student, onSuccess }: Props) {
-  const [name, setName] = useState(student?.name || '')
-  const [school, setSchool] = useState<'유신고' | '창현고'>(student?.school || '유신고')
-  const [grade, setGrade] = useState<1 | 2>(student?.grade || 1)
-  const [classIds, setClassIds] = useState<number[]>([])
-  const [classes, setClasses] = useState<Class[]>([])
-  const [loading, setLoading] = useState(false)
+  const [name,       setName]       = useState(student?.name || '')
+  const [schoolType, setSchoolType] = useState<'middle' | 'high'>(schoolTypeOf(student?.school))
+  const [schoolName, setSchoolName] = useState(student?.school || '')
+  const [grade,      setGrade]      = useState<1 | 2 | 3>(student?.grade || 1)
+  const [classIds,   setClassIds]   = useState<number[]>([])
+  const [classes,    setClasses]    = useState<Class[]>([])
+  const [loading,    setLoading]    = useState(false)
   const toast = useToast()
   const { season } = useSeason()
 
   useEffect(() => {
-    // 현재 시즌의 반만 불러오기
     api.get('/classes', { params: { season_id: season?.id } }).then(({ data }) => {
       setClasses(data)
       if (student) {
@@ -39,22 +43,22 @@ export default function StudentForm({ student, onSuccess }: Props) {
   }
 
   const submit = async () => {
-    if (!name.trim()) return toast('이름을 입력해주세요.', 'error')
+    if (!name.trim())       return toast('이름을 입력해주세요.', 'error')
+    if (!schoolName.trim()) return toast('학교명을 입력해주세요.', 'error')
     setLoading(true)
     try {
+      const payload = {
+        name,
+        school: schoolName,   // 실제 학교명 저장
+        grade,
+        class_ids: classIds,
+        season_id: season?.id
+      }
       if (student) {
-        await api.patch(`/students/${student.id}`, {
-          name, school, grade,
-          class_ids: classIds,
-          season_id: season?.id
-        })
+        await api.patch(`/students/${student.id}`, payload)
         toast('수정 완료', 'success')
       } else {
-        await api.post('/students', {
-          name, school, grade,
-          class_ids: classIds,
-          season_id: season?.id
-        })
+        await api.post('/students', payload)
         toast('학생 등록 완료', 'success')
       }
       onSuccess()
@@ -65,7 +69,10 @@ export default function StudentForm({ student, onSuccess }: Props) {
     }
   }
 
-  const filteredClasses = classes.filter((c) => c.school === school && c.grade === grade)
+  // 학교급 + 학년으로 반 필터링
+  const filteredClasses = classes.filter(
+      (c) => c.school === schoolType && c.grade === grade
+  )
 
   return (
       <div className="space-y-4">
@@ -76,25 +83,29 @@ export default function StudentForm({ student, onSuccess }: Props) {
         </div>
 
         <div>
-          <label className="label">학교</label>
-          <div className="flex gap-2">
-            {SCHOOL_OPTIONS.map((s) => (
-                <button key={s} type="button" onClick={() => setSchool(s)}
+          <label className="label">학교급</label>
+          <div className="flex gap-2 mb-2">
+            {(['high', 'middle'] as const).map((s) => (
+                <button key={s} type="button"
+                        onClick={() => { setSchoolType(s); setSchoolName('') }}
                         className={`flex-1 py-2 rounded-lg text-sm border transition-colors ${
-                            school === s
+                            schoolType === s
                                 ? 'bg-primary-light border-primary text-primary font-medium'
                                 : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                         }`}>
-                  {s}
+                  {s === 'high' ? '고등학교' : '중학교'}
                 </button>
             ))}
           </div>
+          <input className="input" value={schoolName}
+                 onChange={(e) => setSchoolName(e.target.value)}
+                 placeholder={schoolType === 'middle' ? '예: 연무중' : '예: 유신고'} />
         </div>
 
         <div>
           <label className="label">학년</label>
           <div className="flex gap-2">
-            {GRADE_OPTIONS.map((g) => (
+            {([1, 2, 3] as const).map((g) => (
                 <button key={g} type="button" onClick={() => setGrade(g)}
                         className={`flex-1 py-2 rounded-lg text-sm border transition-colors ${
                             grade === g
@@ -113,7 +124,7 @@ export default function StudentForm({ student, onSuccess }: Props) {
               <p className="text-xs text-blue-500 mb-2">현재 시즌: {season.name}</p>
           )}
           {filteredClasses.length === 0 ? (
-              <p className="text-xs text-gray-400">해당 학교/학년의 반이 없습니다.</p>
+              <p className="text-xs text-gray-400">해당 학교급/학년의 반이 없습니다.</p>
           ) : (
               <div className="flex flex-wrap gap-2">
                 {filteredClasses.map((c) => (
