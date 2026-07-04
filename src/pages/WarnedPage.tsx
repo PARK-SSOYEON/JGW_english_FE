@@ -46,7 +46,18 @@ export default function WarnedPage() {
     }
   }
 
-  // 경고 횟수별 분류
+  // ✅ 추가: 전체 경고 초기화
+  const resetAllWarnings = async () => {
+    if (!confirm(`경고 대상자 ${students.length}명의 경고 횟수를 모두 0으로 초기화하시겠습니까?`)) return
+    try {
+      await Promise.all(students.map(s => api.patch(`/students/${s.id}`, { warn_count: 0 })))
+      toast('전체 경고 초기화 완료', 'success')
+      fetch()
+    } catch {
+      toast('오류 발생', 'error')
+    }
+  }
+
   const warned1 = students.filter(s => s.warn_count === 1)
   const warned2 = students.filter(s => s.warn_count >= 2)
 
@@ -84,7 +95,15 @@ export default function WarnedPage() {
             <h2 className="text-xl font-bold text-gray-900">경고 대상자</h2>
             <p className="text-sm text-gray-500 mt-0.5">총 {students.length}명</p>
           </div>
-          <button className="btn-secondary btn-sm" onClick={fetch}>새로고침</button>
+          {/* ✅ 추가: 관리자만 보이는 전체 초기화 버튼 */}
+          <div className="flex gap-2">
+            {isSuper && students.length > 0 && (
+                <button className="btn-danger btn-sm" onClick={resetAllWarnings}>
+                  전체 경고 초기화
+                </button>
+            )}
+            <button className="btn-secondary btn-sm" onClick={fetch}>새로고침</button>
+          </div>
         </div>
 
         {loading ? (
@@ -96,7 +115,6 @@ export default function WarnedPage() {
             </div>
         ) : (
             <div className="space-y-6">
-              {/* 퇴원 대상 (2회 이상) */}
               {warned2.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
@@ -109,7 +127,6 @@ export default function WarnedPage() {
                   </div>
               )}
 
-              {/* 경고 1회 */}
               {warned1.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
