@@ -6,6 +6,12 @@ import { DOW_LABELS, SCHOOL_OPTIONS } from '../lib/utils'
 import Modal from '../components/common/Modal'
 import { useSeason } from '../hooks/useSeason'
 
+const schoolType = (school?: string) => {
+  if (school?.includes('중')) return '중학교'
+  if (school?.includes('고')) return '고등학교'
+  return '기타'
+}
+
 export default function AdminPage() {
   const [tab, setTab] = useState<'admins' | 'classes' | 'seasons'>('admins')
   const [admins,  setAdmins]  = useState<Admin[]>([])
@@ -14,20 +20,17 @@ export default function AdminPage() {
   const toast = useToast()
   const { season: activeSeason, setSeason } = useSeason()
 
-  // 관리자 폼
   const [adminModal, setAdminModal] = useState<'new' | Admin | null>(null)
   const [adminName, setAdminName]   = useState('')
   const [adminCode, setAdminCode]   = useState('')
   const [adminRole, setAdminRole]   = useState<'admin' | 'super'>('admin')
 
-  // 반 폼
   const [classModal,  setClassModal]  = useState(false)
   const [className,   setClassName]   = useState('')
   const [classSchool, setClassSchool] = useState<'유신고' | '창현고'>('유신고')
   const [classGrade,  setClassGrade]  = useState<1 | 2>(1)
   const [classDow,    setClassDow]    = useState(2)
 
-  // 시즌 폼
   const [seasonModal,     setSeasonModal]     = useState(false)
   const [seasonName,      setSeasonName]      = useState('')
   const [seasonStartDate, setSeasonStartDate] = useState('')
@@ -134,6 +137,21 @@ export default function AdminPage() {
     } catch { toast('오류 발생', 'error') }
   }
 
+  // 학교급 + 학년으로 그룹핑
+  const groupedClasses = classes.reduce<Record<string, Class[]>>((acc, c) => {
+    const key = `${schoolType(c.school)}-${c.grade ?? 0}`
+    if (!acc[key]) acc[key] = []
+    acc[key].push(c)
+    return acc
+  }, {})
+
+  const sortedClassKeys = Object.keys(groupedClasses).sort((a, b) => {
+    const [schoolA, gradeA] = a.split('-')
+    const [schoolB, gradeB] = b.split('-')
+    if (schoolA !== schoolB) return schoolA === '중학교' ? -1 : 1
+    return Number(gradeA) - Number(gradeB)
+  })
+
   return (
       <div className="p-6 max-w-3xl mx-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-6">관리자 설정</h2>
@@ -189,26 +207,35 @@ export default function AdminPage() {
                 </p>
                 <button className="btn-primary" onClick={() => setClassModal(true)}>+ 반 등록</button>
               </div>
-              {(['유신고', '창현고'] as const).map((school) => (
-                  <div key={school} className="mb-6">
-                    <h3 className="text-sm font-semibold text-gray-500 mb-2">{school}</h3>
-                    <div className="space-y-2">
-                      {classes.filter((c) => c.school === school).map((c) => (
-                          <div key={c.id} className="card px-4 py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">{c.name}</span>
-                              <span className="badge-blue">{c.grade}학년</span>
-                              <span className="text-xs text-gray-400">{DOW_LABELS[c.day_of_week]}요일</span>
+
+              {/* ✅ 학교명 하드코딩 제거 → 학교급 + 학년 그룹핑 */}
+              <div className="space-y-6">
+                {sortedClassKeys.length === 0 ? (
+                    <div className="card p-6 text-center text-sm text-gray-400">등록된 반이 없습니다.</div>
+                ) : (
+                    sortedClassKeys.map((key) => {
+                      const [type, grade] = key.split('-')
+                      return (
+                          <div key={key}>
+                            <h3 className="text-sm font-semibold text-gray-500 mb-2">
+                              {type} {grade}학년
+                            </h3>
+                            <div className="space-y-2">
+                              {groupedClasses[key].map((c) => (
+                                  <div key={c.id} className="card px-4 py-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-gray-900">{c.name}</span>
+                                      <span className="text-xs text-gray-400">{DOW_LABELS[c.day_of_week]}요일</span>
+                                    </div>
+                                    <button className="btn-danger btn-sm" onClick={() => deleteClass(c)}>삭제</button>
+                                  </div>
+                              ))}
                             </div>
-                            <button className="btn-danger btn-sm" onClick={() => deleteClass(c)}>삭제</button>
                           </div>
-                      ))}
-                      {classes.filter((c) => c.school === school).length === 0 && (
-                          <div className="card p-4 text-center text-sm text-gray-400">반이 없습니다.</div>
-                      )}
-                    </div>
-                  </div>
-              ))}
+                      )
+                    })
+                )}
+              </div>
             </div>
         )}
 
@@ -224,7 +251,7 @@ export default function AdminPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-gray-900">{s.name}</span>
-                          {s.is_active && <span className="badge-green">활성</span>}
+                          {!!s.is_active && <span className="badge-green">활성</span>}
                         </div>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {s.start_date?.slice(0, 10)} ~ {s.end_date?.slice(0, 10)}
@@ -232,13 +259,9 @@ export default function AdminPage() {
                       </div>
                       <div className="flex gap-2">
                         {!s.is_active && (
-                            <button className="btn-secondary btn-sm" onClick={() => activateSeason(s)}>
-                              활성화
-                            </button>
+                            <button className="btn-secondary btn-sm" onClick={() => activateSeason(s)}>활성화</button>
                         )}
-                        <button className="btn-danger btn-sm" onClick={() => deleteSeason(s)}>
-                          삭제
-                        </button>
+                        <button className="btn-danger btn-sm" onClick={() => deleteSeason(s)}>삭제</button>
                       </div>
                     </div>
                 ))}
@@ -295,7 +318,7 @@ export default function AdminPage() {
                 <div>
                   <label className="label">반 이름</label>
                   <input className="input" value={className}
-                         onChange={(e) => setClassName(e.target.value)} placeholder="예: 유신1 화요반" />
+                         onChange={(e) => setClassName(e.target.value)} placeholder="예: 고2 화요반" />
                 </div>
                 <div>
                   <label className="label">학교</label>
