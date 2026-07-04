@@ -24,8 +24,8 @@ const STATUS_META: Record<string, { label: string; badge: string }> = {
 }
 
 const schoolType = (school?: string) => {
-    if (school?.includes('중')) return '중학교'
-    if (school?.includes('고')) return '고등학교'
+    if (school === 'middle') return '중학교'
+    if (school === 'high')   return '고등학교'
     return '기타'
 }
 

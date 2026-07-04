@@ -50,7 +50,7 @@ export default function StudentForm({ student, onSuccess }: Props) {
       const payload = {
         name,
         school: schoolName,
-        school_type: schoolType,  
+        school_type: schoolType,
         grade,
         class_ids: classIds,
         season_id: season?.id
