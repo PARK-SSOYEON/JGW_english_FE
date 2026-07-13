@@ -48,7 +48,7 @@ export default function RetestPage() {
 
     const fetchClasses = async () => {
         try {
-            const { data } = await api.get('/classes')
+            const { data } = await api.get('/classes', { params: { season_id: season?.id } })
             setClasses(data)
         } catch {}
     }
