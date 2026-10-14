@@ -3,17 +3,20 @@ import api from '../lib/api'
 import { Student } from '../types'
 import { useToast } from '../components/common/Toast'
 import { useAuth } from '../hooks/useAuth'
+import { useSeason } from '../hooks/useSeason'
 
 export default function WarnedPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(false)
   const toast = useToast()
   const { isSuper } = useAuth()
+  const { season } = useSeason()
 
   const fetch = async () => {
+    if (!season) return
     setLoading(true)
     try {
-      const { data } = await api.get('/students', { params: { warned: 'true' } })
+      const { data } = await api.get('/students', { params: { warned: 'true', season_id: season.id } })
       setStudents(data)
     } catch {
       toast('불러오기 실패', 'error')
@@ -22,7 +25,7 @@ export default function WarnedPage() {
     }
   }
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => { fetch() }, [season])
 
   const resolveWarning = async (student: Student) => {
     if (!confirm(`${student.name} 학생의 경고를 해제하시겠습니까?`)) return
