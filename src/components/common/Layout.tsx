@@ -5,10 +5,7 @@ import api from '../../lib/api'
 import { useSeason } from '../../hooks/useSeason'
 
 const NAV = [
-    { to: '/',              label: '학생 조회',   icon: '🔍' },
-    { to: '/calendar',      label: '주간 캘린더', icon: '📅' },
-    { to: '/study-list',    label: '자습 현황',   icon: '📖' },
-    { to: '/retest',        label: '재시험 현황', icon: '📝' },
+    { to: '/',              label: '주간 캘린더', icon: '📅' },
     { to: '/weekly',        label: '주차별 현황', icon: '📋' },
     { to: '/classes',       label: '반별 조회',   icon: '🏫' },
     { to: '/warned',        label: '경고 대상자', icon: '⚠️' },
@@ -17,6 +14,9 @@ const NAV = [
 ]
 
 const SUPER_NAV = [
+    { to: '/search',     label: '학생 조회',   icon: '🔍' },
+    { to: '/study-list', label: '자습 현황',   icon: '📖' },
+    { to: '/retest',     label: '재시험 현황', icon: '📝' },
     { to: '/attendance', label: '등원 기록',   icon: '📋' },
     { to: '/admin',      label: '관리자 설정', icon: '⚙️' },
 ]

@@ -3,10 +3,12 @@ import { StudyLog } from '../../types'
 import { formatTime, minutesToHM } from '../../lib/utils'
 
 interface Props {
-    logs: StudyLog[]      // end_time 이 없는 오늘 자습 기록
+    logs: StudyLog[]          // end_time 이 없는 오늘 자습 기록
+    finishedLogs: StudyLog[]  // 오늘 끝난 자습 기록 (최근 종료 순)
     loading: boolean
     focusId: number | null
     onEnd: (log: StudyLog) => void
+    onEditTime: (log: StudyLog) => void
 }
 
 function elapsedMinutes(start: string, now: number) {
@@ -14,7 +16,7 @@ function elapsedMinutes(start: string, now: number) {
     return Math.max(Math.floor((now - t) / 60000), 0)
 }
 
-export default function LiveStudyPanel({ logs, loading, focusId, onEnd }: Props) {
+export default function LiveStudyPanel({ logs, finishedLogs, loading, focusId, onEnd, onEditTime }: Props) {
     const [now, setNow] = useState(Date.now())
 
     useEffect(() => {
@@ -66,7 +68,8 @@ export default function LiveStudyPanel({ logs, loading, focusId, onEnd }: Props)
                                         </p>
                                     </div>
                                 )}
-                                <div className="flex justify-end mt-2">
+                                <div className="flex justify-end gap-1.5 mt-2">
+                                    <button className="btn-secondary btn-sm" onClick={() => onEditTime(log)}>시간 수정</button>
                                     <button className="btn-danger btn-sm" onClick={() => onEnd(log)}>자습 종료</button>
                                 </div>
                             </div>
@@ -74,6 +77,48 @@ export default function LiveStudyPanel({ logs, loading, focusId, onEnd }: Props)
                     })}
                 </div>
             )}
+
+            {/* 오늘 자습 마친 학생 */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-semibold text-gray-700">오늘 자습 완료</h3>
+                    <span className="badge-gray">{finishedLogs.length}건</span>
+                </div>
+                {finishedLogs.length === 0 ? (
+                    <p className="text-xs text-gray-400 py-1">아직 자습을 마친 학생이 없습니다.</p>
+                ) : (
+                    <div className="divide-y divide-gray-50">
+                        {finishedLogs.map((log) => {
+                            const required = log.required_minutes ?? null
+                            const remain = log.remain_minutes ?? (required != null ? Math.max(required - (log.done_minutes || 0), 0) : null)
+                            return (
+                                <div key={log.id}
+                                     className={`py-2 ${focusId === log.student_id ? 'bg-primary-light/40 -mx-2 px-2 rounded' : ''}`}>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium text-gray-900 text-sm truncate">{log.student_name}</span>
+                                        <span className="ml-auto text-xs font-medium text-gray-600 tabular-nums">
+                            {minutesToHM(log.actual_minutes || 0)}
+                          </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] text-gray-400 tabular-nums">
+                            {formatTime(log.start_time)}~{formatTime(log.end_time!)}
+                          </span>
+                                        {remain === 0 && <span className="badge-green text-[10px]">강제자습 완료</span>}
+                                        {remain != null && remain > 0 && (
+                                            <span className="badge-amber text-[10px]">{minutesToHM(remain)} 남음</span>
+                                        )}
+                                        <button className="ml-auto text-[11px] text-gray-400 hover:text-primary"
+                                                onClick={() => onEditTime(log)}>
+                                            시간 수정
+                                        </button>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

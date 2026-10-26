@@ -4,6 +4,8 @@ import { StudentDetail } from '../../types'
 import { formatDate, formatTime, minutesToHM } from '../../lib/utils'
 import { useToast } from '../common/Toast'
 import { useSeason } from '../../hooks/useSeason'
+import Modal from '../common/Modal'
+import ScheduleForm from '../admin/ScheduleForm'
 
 export interface SearchRequest {
     name: string
@@ -18,15 +20,19 @@ interface Props {
     onStartStudy: (studentId: number, name: string, scheduleId: number) => void
     onEndStudy: (logId: number, name: string) => void
     onCompleteRetest: (scheduleId: number, name: string) => void
+    onChanged: () => void             // 일정 등록·등원·하원 후 대시보드 새로 고침
 }
 
 export default function SearchPanel({
-                                        request, refreshKey, focusId, onFocus, onStartStudy, onEndStudy, onCompleteRetest,
+                                        request, refreshKey, focusId, onFocus, onStartStudy, onEndStudy, onCompleteRetest, onChanged,
                                     }: Props) {
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<StudentDetail[]>([])
     const [searched, setSearched] = useState('')
     const [loading, setLoading] = useState(false)
+    const [schedModal, setSchedModal] = useState<StudentDetail | null>(null)
+    const [attendModal, setAttendModal] = useState<StudentDetail | null>(null)
+    const [attendPurpose, setAttendPurpose] = useState<'study' | 'retest' | 'general'>('general')
     const toast = useToast()
     const { season } = useSeason()
 
@@ -56,6 +62,27 @@ export default function SearchPanel({
     useEffect(() => {
         if (searched) search(searched, true)
     }, [refreshKey])
+
+    const checkout = async (st: StudentDetail) => {
+        try {
+            await api.post('/attendance/checkout', { student_id: st.id })
+            toast(`${st.name} 하원 기록 완료`, 'success')
+            onChanged()
+        } catch {
+            toast('오류가 발생했습니다.', 'error')
+        }
+    }
+
+    const recordAttendance = async (st: StudentDetail) => {
+        try {
+            await api.post('/attendance', { student_id: st.id, purpose: attendPurpose })
+            toast(`${st.name} 등원 기록 완료`, 'success')
+            setAttendModal(null)
+            onChanged()
+        } catch {
+            toast('오류가 발생했습니다.', 'error')
+        }
+    }
 
     const clear = () => {
         setQuery('')
@@ -108,6 +135,14 @@ export default function SearchPanel({
                                     {st.school} · {st.grade}학년 · {st.class_names || '반 미배정'}
                                 </p>
                             </button>
+
+                            <div className="flex gap-1 flex-wrap mt-2">
+                                <button className="btn-secondary btn-sm px-2" onClick={() => setSchedModal(st)}>일정 등록</button>
+                                <button className="btn-secondary btn-sm px-2" onClick={() => setAttendModal(st)}>등원 기록</button>
+                                {!log && (
+                                    <button className="btn-secondary btn-sm px-2" onClick={() => checkout(st)}>하원</button>
+                                )}
+                            </div>
 
                             <div className="space-y-1.5 mt-2">
                                 {log && (
@@ -172,6 +207,37 @@ export default function SearchPanel({
                 <button className="text-xs text-gray-400 hover:text-gray-600 mt-3" onClick={clear}>
                     검색 지우기
                 </button>
+            )}
+
+            {/* 일정 등록 모달 */}
+            {schedModal && (
+                <Modal title={`${schedModal.name} 일정 등록`} onClose={() => setSchedModal(null)}>
+                    <ScheduleForm
+                        studentId={schedModal.id}
+                        onSuccess={() => { setSchedModal(null); onChanged() }}
+                    />
+                </Modal>
+            )}
+
+            {/* 등원 기록 모달 */}
+            {attendModal && (
+                <Modal title={`${attendModal.name} 등원 기록`} onClose={() => setAttendModal(null)} size="sm">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="label">방문 목적</label>
+                            <select className="input" value={attendPurpose}
+                                    onChange={(e) => setAttendPurpose(e.target.value as any)}>
+                                <option value="general">수업</option>
+                                <option value="retest">재시험</option>
+                                <option value="study">자습</option>
+                            </select>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <button className="btn-secondary" onClick={() => setAttendModal(null)}>취소</button>
+                            <button className="btn-primary" onClick={() => recordAttendance(attendModal)}>기록</button>
+                        </div>
+                    </div>
+                </Modal>
             )}
         </div>
     )

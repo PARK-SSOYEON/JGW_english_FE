@@ -18,22 +18,25 @@ import {SeasonProvider} from './hooks/useSeason'
 
 
 function ProtectedRoutes() {
-    const {auth} = useAuth()
+    const {auth, isSuper} = useAuth()
 
     if (!auth.token) return <Navigate to="/login" replace/>
 
     return (
         <Layout>
             <Routes>
-                <Route path="/" element={<SearchPage/>}/>
-                <Route path="/calendar" element={<CalendarPage/>}/>
-                <Route path="/study-list" element={<StudyListPage/>}/>
+                <Route path="/" element={<CalendarPage/>}/>
+                <Route path="/calendar" element={<Navigate to="/" replace/>}/>
+                {/* 학생 조회: 슈퍼 관리자만 */}
+                <Route path="/search" element={isSuper ? <SearchPage/> : <Navigate to="/" replace/>}/>
+                {/* 현황 페이지: 슈퍼 관리자만 */}
+                <Route path="/study-list" element={isSuper ? <StudyListPage/> : <Navigate to="/" replace/>}/>
+                <Route path="/retest" element={isSuper ? <RetestPage/> : <Navigate to="/" replace/>}/>
+                <Route path="/weekly" element={<WeeklyPage/>}/>
                 <Route path="/classes" element={<ClassesPage/>}/>
                 <Route path="/warned" element={<WarnedPage/>}/>
                 <Route path="/manage" element={<ManagePage/>}/>
                 <Route path="/notifications" element={<NotificationPage/>}/>
-                <Route path="/retest" element={<RetestPage/>}/>
-                <Route path="/weekly" element={<WeeklyPage/>}/>
 
                 {/* 슈퍼 관리자 전용 */}
                 <Route path="/attendance" element={<AttendancePage/>}/>

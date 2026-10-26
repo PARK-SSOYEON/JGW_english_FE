@@ -10,6 +10,7 @@ import { minutesToHM, todayStr as kstToday } from '../lib/utils'
 import ScheduleActionPopover, { PopoverAnchor } from '../components/calendar/ScheduleActionPopover'
 import SearchPanel, { SearchRequest } from '../components/calendar/SearchPanel'
 import LiveStudyPanel from '../components/calendar/LiveStudyPanel'
+import StudyLogTimeModal from '../components/calendar/StudyLogTimeModal'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -23,9 +24,10 @@ export default function CalendarPage() {
   )
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(false)
-  const [activeLogs, setActiveLogs] = useState<StudyLog[]>([])
+  const [todayLogs, setTodayLogs] = useState<StudyLog[]>([])
   const [logsLoading, setLogsLoading] = useState(false)
   const [editSchedule, setEditSchedule] = useState<Schedule | null>(null)
+  const [editLog, setEditLog] = useState<StudyLog | null>(null)
   const [popover, setPopover] = useState<PopoverAnchor | null>(null)
   const [focusId, setFocusId] = useState<number | null>(null)
   const [searchRequest, setSearchRequest] = useState<SearchRequest | null>(null)
@@ -56,13 +58,18 @@ export default function CalendarPage() {
     setLogsLoading(true)
     try {
       const { data } = await api.get<StudyLog[]>('/study-logs', { params: { date: kstToday() } })
-      setActiveLogs(data.filter((l) => !l.end_time))
+      setTodayLogs(data)
     } catch {
       toast('자습 현황 불러오기 실패', 'error')
     } finally {
       setLogsLoading(false)
     }
   }
+
+  const activeLogs = todayLogs.filter((l) => !l.end_time)
+  const finishedLogs = todayLogs
+      .filter((l) => l.end_time)
+      .sort((a, b) => (b.end_time ?? '').localeCompare(a.end_time ?? ''))
 
   useEffect(() => { fetchSchedules() }, [weekStart])
 
@@ -106,6 +113,23 @@ export default function CalendarPage() {
       } else {
         toast(`${name ?? ''} 자습 종료 (${minutesToHM(data.actual_minutes)})`, 'info')
       }
+      refreshAll()
+    } catch (e: any) {
+      toast(e.response?.data?.error || '오류가 발생했습니다.', 'error')
+    }
+  }
+
+  const saveLogTime = async (log: StudyLog, body: { start_time: string; end_time?: string }) => {
+    try {
+      const { data } = await api.patch(`/study-logs/${log.id}`, body)
+      if (data.schedule_completed) {
+        toast(`${log.student_name} 자습 시간 수정 · 강제자습 완료 ✅`, 'success')
+      } else if (data.remain_minutes != null) {
+        toast(`${log.student_name} 자습 시간 수정 · ${minutesToHM(data.remain_minutes)} 남음`, 'success')
+      } else {
+        toast(`${log.student_name} 자습 시간 수정 완료`, 'success')
+      }
+      setEditLog(null)
       refreshAll()
     } catch (e: any) {
       toast(e.response?.data?.error || '오류가 발생했습니다.', 'error')
@@ -282,15 +306,18 @@ export default function CalendarPage() {
                 onStartStudy={(studentId, name, scheduleId) => startStudy(studentId, name, scheduleId)}
                 onEndStudy={(logId, name) => endStudy(logId, name)}
                 onCompleteRetest={(id, name) => setStatus(id, 'completed', `${name} 재시험 완료 처리!`)}
+                onChanged={refreshAll}
             />
           </div>
 
           <div className="min-w-0 xl:col-start-2 xl:row-start-2 2xl:col-start-3 2xl:row-start-1">
             <LiveStudyPanel
                 logs={activeLogs}
+                finishedLogs={finishedLogs}
                 loading={logsLoading}
                 focusId={focusId}
                 onEnd={(log) => endStudy(log.id, log.student_name)}
+                onEditTime={setEditLog}
             />
           </div>
         </div>
@@ -312,6 +339,11 @@ export default function CalendarPage() {
                 }}
                 onDelete={(s) => deleteSchedule(s.id)}
             />
+        )}
+
+        {/* 자습 시작·종료 시간 수정 */}
+        {editLog && (
+            <StudyLogTimeModal log={editLog} onClose={() => setEditLog(null)} onSave={saveLogTime}/>
         )}
 
         {/* 수정 모달: 일정 정보만 수정 */}
