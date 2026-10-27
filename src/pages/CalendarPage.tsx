@@ -225,11 +225,11 @@ export default function CalendarPage() {
         {/* 대시보드: 넓은 화면은 검색 | 캘린더 | 자습 중, 중간 화면은 캘린더 | (검색, 자습 중) */}
         <div className="grid gap-4 items-start grid-cols-1 lg:grid-cols-2
                         xl:grid-cols-[minmax(0,1fr)_280px]
-                        2xl:grid-cols-[260px_minmax(0,1fr)_270px]">
+                        min-[1800px]:grid-cols-[260px_minmax(0,1fr)_270px]">
 
           <div className="min-w-0 lg:col-span-2 xl:col-span-1
                           xl:col-start-1 xl:row-start-1 xl:row-span-2
-                          2xl:col-start-2 2xl:row-span-1">
+                          min-[1800px]:col-start-2 min-[1800px]:row-span-1">
             <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
               {weekDates.map(({ date, dow, label }) => {
                 const isToday = date === todayStr
@@ -297,7 +297,7 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div className="min-w-0 xl:col-start-2 xl:row-start-1 2xl:col-start-1">
+          <div className="min-w-0 xl:col-start-2 xl:row-start-1 min-[1800px]:col-start-1">
             <SearchPanel
                 request={searchRequest}
                 refreshKey={refreshKey}
@@ -310,7 +310,7 @@ export default function CalendarPage() {
             />
           </div>
 
-          <div className="min-w-0 xl:col-start-2 xl:row-start-2 2xl:col-start-3 2xl:row-start-1">
+          <div className="min-w-0 xl:col-start-2 xl:row-start-2 min-[1800px]:col-start-3 min-[1800px]:row-start-1">
             <LiveStudyPanel
                 logs={activeLogs}
                 finishedLogs={finishedLogs}
