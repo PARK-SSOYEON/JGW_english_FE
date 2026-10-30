@@ -15,33 +15,16 @@ interface Props {
 
 function calcDefaultDeadline(classDow?: number): string {
   const today = new Date()
-  const days = classDow === 2 ? 5 : 6
+  const days = classDow === 2 ? 5 : 7
   return format(addDays(today, days), 'yyyy-MM-dd')
 }
 
-function getSelectableDates(classDow?: number) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  let rangeEnd: Date
-  if (classDow !== undefined) {
-    let daysUntilNext = (classDow - today.getDay() + 7) % 7
-    if (daysUntilNext === 0) daysUntilNext = 7
-    const nextClass = addDays(today, daysUntilNext)
-    rangeEnd = addDays(nextClass, -1)
-  } else {
-    rangeEnd = addDays(today, 6)
-  }
-
-  let rangeStart: Date
-  if (classDow !== undefined) {
-    let daysSinceLast = (today.getDay() - classDow + 7) % 7
-    if (daysSinceLast === 0) daysSinceLast = 7
-    const lastClass = addDays(today, -daysSinceLast)
-    rangeStart = addDays(lastClass, 1)
-  } else {
-    rangeStart = addDays(today, 1)
-  }
+// 선택 가능일: 생성일 ~ 마감일 (월요일 제외)
+function getSelectableDates(startStr: string, endStr: string) {
+  if (!startStr || !endStr) return []
+  const rangeStart = new Date(startStr + 'T00:00:00')
+  const rangeEnd   = new Date(endStr + 'T00:00:00')
+  if (isNaN(rangeStart.getTime()) || isNaN(rangeEnd.getTime())) return []
 
   const dates = []
   let cur = new Date(rangeStart)
@@ -60,11 +43,18 @@ function getSelectableDates(classDow?: number) {
   return dates
 }
 
+function toLocalDateStr(value?: string | null): string {
+  if (!value) return ''
+  const d = new Date(value.includes('T') ? value : value.replace(' ', 'T'))
+  return isNaN(d.getTime()) ? value.slice(0, 10) : format(d, 'yyyy-MM-dd')
+}
+
 export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) {
   const [students, setStudents]         = useState<Student[]>([])
   const [classes,  setClasses]          = useState<Class[]>([])
   const [selStudentId, setSelStudentId] = useState(studentId || schedule?.student_id || 0)
-  const [type,     setType]             = useState<'study' | 'retest'>(schedule?.type || 'retest')
+  // 신규 등록은 자습/재시험 복수 선택 가능, 수정은 기존 일정 종류 고정
+  const [types,    setTypes]            = useState<('study' | 'retest')[]>(schedule ? [schedule.type] : ['retest'])
   const [date,     setDate]             = useState(schedule?.scheduled_date?.slice(0, 10) || '')
   const [timeH,    setTimeH]            = useState((schedule as any)?.scheduled_time?.slice(0, 2) || '')
   const [timeM,    setTimeM]            = useState((schedule as any)?.scheduled_time?.slice(3, 5) || '00')
@@ -78,13 +68,14 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
   const [status, setStatus] = useState<
       'pending' | 'in_progress' | 'completed' | 'expired'
   >(schedule?.status || 'pending')
-  const [studentClassDow, setStudentClassDow] = useState<number | undefined>(undefined)
   const toast = useToast()
   const { isSuper } = useAuth()
 
 
   const fCount = (fHomework ? 1 : 0) + (fRetest ? 1 : 0)
-  const requiredMinutes = type === 'study'
+  const hasStudy  = types.includes('study')
+  const hasRetest = types.includes('retest')
+  const requiredMinutes = hasStudy
       ? fCount === 1 ? 180 : fCount === 2 ? 420 : null
       : null
   const time = timeH ? `${timeH}:${timeM}` : ''
@@ -124,7 +115,6 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
       const cls = classes.find(c => names.includes(c.name))
       const dow = cls?.day_of_week
 
-      setStudentClassDow(dow)
       if (!schedule) {
         setAutoDeadline(calcDefaultDeadline(dow))
       }
@@ -135,6 +125,8 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
 
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
+  // 생성일: 신규는 오늘, 수정은 일정 생성일
+  const createdStr = schedule ? (toLocalDateStr(schedule.created_at) || todayStr) : todayStr
 
   const shouldLockDate =
       schedule &&
@@ -143,13 +135,21 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
 
   const selectableDates = shouldLockDate
       ? []
-      : getSelectableDates(studentClassDow)
+      : getSelectableDates(createdStr, autoDeadline)
+
+  // 신규 등록 시 마감일 변경으로 선택한 날짜가 범위를 벗어나면 선택 해제
+  useEffect(() => {
+    if (!schedule && date && !selectableDates.some(d => d.date === date)) {
+      setDate('')
+    }
+  }, [autoDeadline, createdStr])
 
   const submit = async () => {
     if (!selStudentId) return toast('학생을 선택해주세요.', 'error')
     if (!date) return toast('날짜를 선택해주세요.', 'error')
     if (!timeH) return toast('시간을 입력해주세요.', 'error')
-    if (type === 'study' && fCount === 0)
+    if (!types.length) return toast('재시험 또는 자습을 선택해주세요.', 'error')
+    if (hasStudy && fCount === 0)
       return toast('숙제X 또는 시험X 중 하나 이상 선택해주세요.', 'error')
     setLoading(true)
     try {
@@ -166,8 +166,28 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
         await api.patch(`/schedules/${schedule.id}`, payload)
         toast('수정 완료', 'success')
       } else {
-        await api.post('/schedules', { ...payload, student_id: selStudentId, type })
-        toast('일정 등록 완료', 'success')
+        // 자습/재시험 동시 선택 시 각각 별도 일정으로 저장
+        const created: string[] = []
+        try {
+          if (hasRetest) {
+            await api.post('/schedules', {
+              ...payload, student_id: selStudentId, type: 'retest',
+              f_homework: false, f_retest: false,
+            })
+            created.push('재시험')
+          }
+          if (hasStudy) {
+            await api.post('/schedules', { ...payload, student_id: selStudentId, type: 'study' })
+            created.push('자습')
+          }
+        } catch (e) {
+          if (created.length) {
+            toast(`${created.join(', ')} 일정만 등록되었습니다.`, 'error')
+            onSuccess()
+          }
+          throw e
+        }
+        toast(`${created.join(' + ')} 일정 등록 완료`, 'success')
       }
       onSuccess()
     } catch (e: any) {
@@ -199,9 +219,12 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
               <label className="label">종류</label>
               <div className="flex gap-2">
                 {(['retest', 'study'] as const).map((t) => (
-                    <button key={t} type="button" onClick={() => setType(t)}
+                    <button key={t} type="button"
+                            onClick={() => setTypes(prev =>
+                                prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]
+                            )}
                             className={`flex-1 py-2 rounded-lg text-sm border transition-colors ${
-                                type === t
+                                types.includes(t)
                                     ? t === 'retest'
                                         ? 'bg-red-50 border-red-300 text-red-700 font-medium'
                                         : 'bg-amber-50 border-amber-300 text-amber-700 font-medium'
@@ -211,10 +234,13 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
                     </button>
                 ))}
               </div>
+              <p className="text-xs text-gray-400 mt-1">
+                둘 다 선택하면 재시험·자습 일정이 각각 따로 등록됩니다.
+              </p>
             </div>
         )}
 
-        {type === 'study' && (
+        {hasStudy && (
             <div>
               <label className="label">F 항목 선택</label>
               <div className="flex gap-2">
@@ -256,7 +282,11 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
                 완료/만료된 일정은 날짜를 변경할 수 없습니다.
               </div>
           ) : selectableDates.length === 0 ? (
-              <div className="text-xs text-gray-400 py-2">날짜를 계산 중...</div>
+              <div className="text-xs text-gray-400 py-2">
+                {autoDeadline && autoDeadline < createdStr
+                    ? '완료 기한이 생성일보다 빠릅니다. 완료 기한을 확인해주세요.'
+                    : '선택 가능한 날짜가 없습니다.'}
+              </div>
           ) : (
               <div className="flex gap-1.5 flex-wrap">
                 {selectableDates.map(({ date: d, dow, label, fullLabel }) => (
@@ -310,9 +340,10 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
         <div>
           <label className="label">완료 기한</label>
           <input type="date" className="input" value={autoDeadline}
+                 min={createdStr}
                  onChange={(e) => setAutoDeadline(e.target.value)} />
           <p className="text-xs text-blue-500 mt-1">
-            기본값: 오늘 기준 화요반 +5일(일요일), 나머지 +6일
+            기본값: +7일 (다음 수업일) · 방문 날짜는 생성일부터 완료 기한까지 선택 가능
           </p>
         </div>
 
@@ -328,31 +359,31 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
                 schedule.type === 'retest' ||
                 (schedule.type === 'study' && isSuper)
             ) && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <label className="label">상태 변경</label>
-              <div className="flex gap-2">
-                {(['pending', 'in_progress', 'completed', 'expired'] as const).map((s) => (
-                    <button
-                        key={s}
-                        type="button"
-                        onClick={() => setStatus(s)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs border transition-colors ${
-                            status === s
-                                ? 'bg-primary-light border-primary text-primary font-medium'
-                                : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-                        }`}
-                    >
-                      {{
-                        pending: '미시작',
-                        in_progress: '진행중',
-                        completed: '완료',
-                        expired: '만료',
-                      }[s]}
-                    </button>
-                ))}
-              </div>
-            </div>
-        )}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <label className="label">상태 변경</label>
+                  <div className="flex gap-2">
+                    {(['pending', 'in_progress', 'completed', 'expired'] as const).map((s) => (
+                        <button
+                            key={s}
+                            type="button"
+                            onClick={() => setStatus(s)}
+                            className={`flex-1 py-1.5 rounded-lg text-xs border transition-colors ${
+                                status === s
+                                    ? 'bg-primary-light border-primary text-primary font-medium'
+                                    : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                            }`}
+                        >
+                          {{
+                            pending: '미시작',
+                            in_progress: '진행중',
+                            completed: '완료',
+                            expired: '만료',
+                          }[s]}
+                        </button>
+                    ))}
+                  </div>
+                </div>
+            )}
 
         <button className="btn-primary w-full" onClick={submit} disabled={loading}>
           {loading ? '처리 중...' : schedule ? '수정' : '등록'}
