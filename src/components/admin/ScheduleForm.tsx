@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { format, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import api from '../../lib/api'
-import { Schedule, Student, Class } from '../../types'
+import { Schedule, Student } from '../../types'
 import { minutesToHM, DOW_LABELS } from '../../lib/utils'
 import { useToast } from '../common/Toast'
 import { useAuth } from '../../hooks/useAuth'
@@ -13,10 +13,8 @@ interface Props {
   onSuccess: () => void
 }
 
-function calcDefaultDeadline(classDow?: number): string {
-  const today = new Date()
-  const days = classDow === 2 ? 5 : 7
-  return format(addDays(today, days), 'yyyy-MM-dd')
+function calcDefaultDeadline(): string {
+  return format(addDays(new Date(), 7), 'yyyy-MM-dd')
 }
 
 // 선택 가능일: 생성일 ~ 마감일 (월요일 제외)
@@ -51,7 +49,6 @@ function toLocalDateStr(value?: string | null): string {
 
 export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) {
   const [students, setStudents]         = useState<Student[]>([])
-  const [classes,  setClasses]          = useState<Class[]>([])
   const [selStudentId, setSelStudentId] = useState(studentId || schedule?.student_id || 0)
   // 신규 등록은 자습/재시험 복수 선택 가능, 수정은 기존 일정 종류 고정
   const [types,    setTypes]            = useState<('study' | 'retest')[]>(schedule ? [schedule.type] : ['retest'])
@@ -85,44 +82,7 @@ export default function ScheduleForm({ studentId, schedule, onSuccess }: Props) 
     if (!studentId && !schedule) {
       api.get('/students').then(({ data }) => setStudents(data))
     }
-    api.get('/classes').then(({ data }) => setClasses(data))
   }, [])
-
-  // 반 요일 resolve (async) - classes/students 로드 후 실행
-  useEffect(() => {
-    if (!classes.length) return
-    const sid = Number(selStudentId || studentId || schedule?.student_id)
-    if (!sid) return
-
-    const resolve = async () => {
-      let classNames: string | undefined
-
-      if (schedule) {
-        // 수정 모드: 전체 학생 목록에서 찾기
-        try {
-          const { data } = await api.get('/students')
-          const found = data.find((s: Student) => s.id === schedule.student_id)
-          classNames = found?.class_names
-        } catch { return }
-      } else {
-        // 신규: 로드된 students 배열에서 찾기
-        const student = students.find(s => s.id === sid)
-        classNames = student?.class_names
-      }
-
-      if (!classNames) return
-      const names = classNames.split(', ').map((n: string) => n.trim())
-      const cls = classes.find(c => names.includes(c.name))
-      const dow = cls?.day_of_week
-
-      if (!schedule) {
-        setAutoDeadline(calcDefaultDeadline(dow))
-      }
-    }
-
-    resolve()
-  }, [selStudentId, classes, students]) // ← useEffect 하나로 통합
-
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   // 생성일: 신규는 오늘, 수정은 일정 생성일
